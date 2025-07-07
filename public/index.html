@@ -1,113 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>Vercel MySQL 数据上传</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f7fa;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #0070f3;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        button {
-            background: #0070f3;
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #0051bb;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 6px;
-            background: #f0f4f8;
-            min-height: 100px;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-        .success {
-            color: #17c964;
-        }
-        .error {
-            color: #f31260;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据提交系统</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>MySQL 数据上传演示</h1>
+        <header>
+            <h1>数据提交系统</h1>
+            <nav>
+                <a href="/">首页</a>
+                <a href="logs.html">查看日志</a>
+            </nav>
+        </header>
         
-        <div class="form-group">
-            <label for="name">姓名：</label>
-            <input type="text" id="name" placeholder="输入您的姓名">
-        </div>
+        <main>
+            <section class="form-section">
+                <h2>提交数据</h2>
+                <div class="form-group">
+                    <label for="name">姓名</label>
+                    <input type="text" id="name" placeholder="请输入姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" placeholder="请输入邮箱">
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">留言</label>
+                    <textarea id="message" rows="4" placeholder="请输入留言内容"></textarea>
+                </div>
+                
+                <button onclick="submitData()">提交数据</button>
+                
+                <div id="result" class="result-panel">
+                    <div class="loading">等待操作...</div>
+                </div>
+            </section>
+            
+            <section class="recent-logs">
+                <h2>最近日志 <button class="refresh-btn" onclick="loadRecentLogs()">刷新</button></h2>
+                <div id="recentLogs" class="logs-container"></div>
+            </section>
+        </main>
         
-        <div class="form-group">
-            <label for="email">邮箱：</label>
-            <input type="email" id="email" placeholder="输入您的邮箱">
-        </div>
-        
-        <div class="form-group">
-            <label for="message">留言：</label>
-            <textarea id="message" rows="4" placeholder="输入您的留言"></textarea>
-        </div>
-        
-        <button onclick="submitData()">提交到数据库</button>
-        
-        <div id="apiResult" class="result"></div>
+        <footer>
+            <p>© 2023 数据提交系统 | 日志版本: <span id="logVersion">1.0.0</span></p>
+        </footer>
     </div>
     
+    <script src="scripts.js"></script>
     <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecentLogs();
+            document.getElementById('logVersion').textContent = 
+                new Date().toISOString().split('T')[0].replace(/-/g, '.');
+        });
+        
+        // 加载最近日志
+        async function loadRecentLogs() {
+            const logsContainer = document.getElementById('recentLogs');
+            logsContainer.innerHTML = '<div class="loading">加载日志中...</div>';
+            
+            try {
+                const response = await fetch('/api/logs?limit=5');
+                const data = await response.json();
+                
+                if (!data.success || !data.logs || data.logs.length === 0) {
+                    logsContainer.innerHTML = '<div class="empty">没有找到日志记录</div>';
+                    return;
+                }
+                
+                logsContainer.innerHTML = '';
+                
+                data.logs.forEach(log => {
+                    const logElement = createLogElement(log);
+                    logsContainer.appendChild(logElement);
+                });
+                
+            } catch (error) {
+                logsContainer.innerHTML = `<div class="error">加载日志失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 提交数据
         async function submitData() {
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const message = document.getElementById('message').value;
             
-            const resultDiv = document.getElementById('apiResult');
-            resultDiv.textContent = "提交中...";
-            resultDiv.className = "result";
+            const resultPanel = document.getElementById('result');
+            resultPanel.innerHTML = '<div class="loading">提交中，请稍候...</div>';
             
             try {
                 const response = await fetch('/api/submit', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                    headers: { 
+                        'Content-Type': 'application/json' 
                     },
                     body: JSON.stringify({ name, email, message })
                 });
@@ -115,21 +108,39 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    resultDiv.textContent = "✅ 提交成功！\n\n" + 
-                        JSON.stringify(data.data, null, 2);
-                    resultDiv.className = "result success";
+                    resultPanel.innerHTML = `
+                        <div class="success">
+                            <h3>提交成功！</h3>
+                            <p>ID: ${data.data.id}</p>
+                            <p>姓名: ${data.data.name}</p>
+                            <p>邮箱: ${data.data.email}</p>
+                            <p>消息: ${data.data.message}</p>
+                        </div>
+                    `;
                     
                     // 清空表单
                     document.getElementById('name').value = '';
                     document.getElementById('email').value = '';
                     document.getElementById('message').value = '';
                 } else {
-                    resultDiv.textContent = "❌ 提交失败: " + data.message;
-                    resultDiv.className = "result error";
+                    resultPanel.innerHTML = `
+                        <div class="error">
+                            <h3>提交失败</h3>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
                 }
+                
+                // 刷新日志
+                loadRecentLogs();
+                
             } catch (error) {
-                resultDiv.textContent = "❌ 网络错误: " + error.message;
-                resultDiv.className = "result error";
+                resultPanel.innerHTML = `
+                    <div class="error">
+                        <h3>请求失败</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
     </script>

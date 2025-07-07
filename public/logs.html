@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统日志查看器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>系统日志查看器</h1>
+            <nav>
+                <a href="/">返回首页</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="controls">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="levelFilter">日志级别:</label>
+                        <select id="levelFilter">
+                            <option value="">全部</option>
+                            <option value="INFO">信息</option>
+                            <option value="SUCCESS">成功</option>
+                            <option value="WARN">警告</option>
+                            <option value="ERROR">错误</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="functionFilter">函数:</label>
+                        <select id="functionFilter">
+                            <option value="">全部</option>
+                            <option value="submit">提交API</option>
+                            <option value="logs">日志API</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="searchInput">搜索:</label>
+                        <input type="text" id="searchInput" placeholder="输入关键词...">
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button onclick="loadLogs()">刷新日志</button>
+                    <button onclick="clearLogs()" class="danger">清空日志</button>
+                    <button onclick="startAutoRefresh()">自动刷新 (10秒)</button>
+                    <button onclick="stopAutoRefresh()">停止刷新</button>
+                </div>
+            </section>
+            
+            <section class="logs-section">
+                <div class="logs-header">
+                    <h2>系统日志 <span id="logCount">0</span> 条</h2>
+                    <div class="stats">
+                        <span class="stat info" id="infoCount">0</span>
+                        <span class="stat success" id="successCount">0</span>
+                        <span class="stat warn" id="warnCount">0</span>
+                        <span class="stat error" id="errorCount">0</span>
+                    </div>
+                </div>
+                
+                <div id="logsContainer" class="logs-container">
+                    <div class="loading">加载日志中...</div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2023 系统日志查看器 | 最后更新: <span id="lastUpdate">正在加载...</span></p>
+        </footer>
+    </div>
+    
+    <script src="scripts.js"></script>
+    <script>
+        let autoRefreshTimer = null;
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLogs();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        });
+        
+        // 加载日志
+        async function loadLogs() {
+            const logsContainer = document.getElementById('logsContainer');
+            logsContainer.innerHTML = '<div class="loading">加载日志中...</div>';
+            
+            try {
+                // 获取筛选条件
+                const level = document.getElementById('levelFilter').value;
+                const func = document.getElementById('functionFilter').value;
+                const search = document.getElementById('searchInput').value;
+                
+                // 构建查询参数
+                const params = new URLSearchParams();
+                if (level) params.append('level', level);
+                if (func) params.append('function', func);
+                if (search) params.append('search', search);
+                
+                const response = await fetch(`/api/logs?${params.toString()}`);
+                const data = await response.json();
+                
+                if (!data.success || !data.logs || data.logs.length === 0) {
+                    logsContainer.innerHTML = '<div class="empty">没有找到日志记录</div>';
+                    updateStats([]);
+                    return;
+                }
+                
+                logsContainer.innerHTML = '';
+                
+                // 创建日志元素
+                data.logs.forEach(log => {
+                    const logElement = createLogElement(log);
+                    logsContainer.appendChild(logElement);
+                });
+                
+                // 更新统计信息
+                updateStats(data.logs);
+                
+            } catch (error) {
+                logsContainer.innerHTML = `<div class="error">加载日志失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 更新统计信息
+        function updateStats(logs) {
+            document.getElementById('logCount').textContent = logs.length;
+            
+            const counts = {
+                INFO: 0,
+                SUCCESS: 0,
+                WARN: 0,
+                ERROR: 0
+            };
+            
+            logs.forEach(log => {
+                counts[log.level] = (counts[log.level] || 0) + 1;
+            });
+            
+            document.getElementById('infoCount').textContent = counts.INFO;
+            document.getElementById('successCount').textContent = counts.SUCCESS;
+            document.getElementById('warnCount').textContent = counts.WARN;
+            document.getElementById('errorCount').textContent = counts.ERROR;
+        }
+        
+        // 清空日志
+        async function clearLogs() {
+            if (!confirm('确定要清空所有日志吗？此操作不可撤销！')) return;
+            
+            try {
+                const response = await fetch('/api/logs', { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('日志已成功清空');
+                    loadLogs();
+                } else {
+                    alert('清空日志失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+        
+        // 开始自动刷新
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            autoRefreshTimer = setInterval(loadLogs, 10000);
+            alert('已启用10秒自动刷新');
+        }
+        
+        // 停止自动刷新
+        function stopAutoRefresh() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+                alert('已停止自动刷新');
+            }
+        }
+        
+        // 添加筛选器事件监听
+        document.getElementById('levelFilter').addEventListener('change', loadLogs);
+        document.getElementById('functionFilter').addEventListener('change', loadLogs);
+        document.getElementById('searchInput').addEventListener('input', () => {
+            // 防抖处理，减少请求次数
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(loadLogs, 500);
+        });
+    </script>
+</body>
+</html>

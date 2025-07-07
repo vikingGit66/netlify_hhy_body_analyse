@@ -136,11 +136,19 @@
                 
             } catch (error) {
                 resultPanel.innerHTML = `
-                    <div class="error">
-                        <h3>请求失败</h3>
-                        <p>${error.message}</p>
-                    </div>
+                <div class="error">
+                    <h3>请求失败</h3>
+                    <pre>${error.message}</pre>
+                    <p>请尝试以下步骤：</p>
+                    <ol>
+                    <li>检查网络连接</li>
+                    <li>刷新页面重试</li>
+                    <li>查看控制台获取更多信息</li>
+                    <li>直接测试 <a href="/api/debug" target="_blank">/api/debug</a></li>
+                    </ol>
+                </div>
                 `;
+                console.error('提交请求失败详情:', error);
             }
         }
     </script>

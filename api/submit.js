@@ -1,40 +1,43 @@
 import { addLogEntry } from './logs.js';
 
 export default async function handler(req, res) {
+  // 设置响应头为JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
   const log = (level, message) => addLogEntry(level, `[${requestId}] ${message}`, 'submit');
   
-  log('INFO', `收到 ${req.method} 请求到 ${req.url}`);
-  
-  // 只处理POST请求
-  if (req.method !== 'POST') {
-    log('WARN', `不支持的请求方法: ${req.method}`);
-    return res.status(405).json({ 
-      success: false,
-      message: '仅支持 POST 请求' 
-    });
-  }
-
-  // 获取请求体数据
-  const { name, email, message } = req.body;
-  log('INFO', `请求数据: ${JSON.stringify({name, email})}`);
-  
-  // 验证输入
-  if (!name || !email || !message) {
-    const missingFields = [];
-    if (!name) missingFields.push('name');
-    if (!email) missingFields.push('email');
-    if (!message) missingFields.push('message');
-    
-    log('ERROR', `缺少必填字段: ${missingFields.join(', ')}`);
-    return res.status(400).json({ 
-      success: false,
-      message: `缺少必填字段: ${missingFields.join(', ')}` 
-    });
-  }
-
-  // 模拟数据库操作
   try {
+    log('INFO', `收到 ${req.method} 请求到 ${req.url}`);
+    
+    // 只处理POST请求
+    if (req.method !== 'POST') {
+      log('WARN', `不支持的请求方法: ${req.method}`);
+      return res.status(405).json({ 
+        success: false,
+        message: '仅支持 POST 请求' 
+      });
+    }
+
+    // 获取请求体数据
+    const { name, email, message } = req.body;
+    log('INFO', `请求数据: ${JSON.stringify({name, email})}`);
+    
+    // 验证输入
+    if (!name || !email || !message) {
+      const missingFields = [];
+      if (!name) missingFields.push('name');
+      if (!email) missingFields.push('email');
+      if (!message) missingFields.push('message');
+      
+      log('ERROR', `缺少必填字段: ${missingFields.join(', ')}`);
+      return res.status(400).json({ 
+        success: false,
+        message: `缺少必填字段: ${missingFields.join(', ')}` 
+      });
+    }
+
+    // 模拟数据库操作
     log('INFO', '开始处理数据');
     
     // 模拟数据库插入
@@ -60,7 +63,11 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       message: '数据处理失败',
-      error: error.message
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }
     });
   }
 }

@@ -1,21 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>最简单的Vercel示例</title>
+    <title>Vercel MySQL 数据上传</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0070f3;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0051bb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #f0f4f8;
+            min-height: 100px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #17c964;
+        }
+        .error {
+            color: #f31260;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello Vercel!</h1>
-    <p>这是一个最简单的Vercel部署示例</p>
-    
-    <button onclick="callApi()">测试API</button>
-    <pre id="apiResult"></pre>
+    <div class="container">
+        <h1>MySQL 数据上传演示</h1>
+        
+        <div class="form-group">
+            <label for="name">姓名：</label>
+            <input type="text" id="name" placeholder="输入您的姓名">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">邮箱：</label>
+            <input type="email" id="email" placeholder="输入您的邮箱">
+        </div>
+        
+        <div class="form-group">
+            <label for="message">留言：</label>
+            <textarea id="message" rows="4" placeholder="输入您的留言"></textarea>
+        </div>
+        
+        <button onclick="submitData()">提交到数据库</button>
+        
+        <div id="apiResult" class="result"></div>
+    </div>
     
     <script>
-        async function callApi() {
-            const response = await fetch('/api/hello');
-            const data = await response.json();
-            document.getElementById('apiResult').textContent = 
-                JSON.stringify(data, null, 2);
+        async function submitData() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.textContent = "提交中...";
+            resultDiv.className = "result";
+            
+            try {
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.textContent = "✅ 提交成功！\n\n" + 
+                        JSON.stringify(data.data, null, 2);
+                    resultDiv.className = "result success";
+                    
+                    // 清空表单
+                    document.getElementById('name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('message').value = '';
+                } else {
+                    resultDiv.textContent = "❌ 提交失败: " + data.message;
+                    resultDiv.className = "result error";
+                }
+            } catch (error) {
+                resultDiv.textContent = "❌ 网络错误: " + error.message;
+                resultDiv.className = "result error";
+            }
         }
     </script>
 </body>

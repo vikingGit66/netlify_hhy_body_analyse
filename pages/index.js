@@ -1,46 +1,36 @@
-import Head from "next/head";
-import Product from "../components/Product";
-import prisma from "../lib/prisma";
+export default function Home() {
+  const sendData = async () => {
+    try {
+      const response = await fetch("/api/save-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "Hello from Vercel!" })
+      });
+      
+      const result = await response.json();
+      alert(result.success ? "数据保存成功!" : "保存失败: " + result.error);
+    } catch (error) {
+      alert("请求失败: " + error.message);
+    }
+  };
 
-export default function Home({ products }) {
   return (
-    <div>
-      <Head>
-        <title>PlanetScale Next.js Quickstart</title>
-        <meta name="description" content="PlanetScale Quickstart for Next.js" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className="p-10 mx-auto max-w-4xl">
-        <h1 className="text-6xl font-bold mb-4 text-center">Next.js Starter</h1>
-        <p className="mb-20 text-xl text-center">
-          🔥 Shop from the hottest items in the world 🔥
-        </p>
-        <div className="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 justify-items-center gap-4">
-          {products.map((product) => (
-            <Product product={product} key={product.id} />
-          ))}
-        </div>
-      </main>
-
-      <footer></footer>
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1>MySQL 测试应用</h1>
+      <button 
+        onClick={sendData}
+        style={{
+          padding: '10px 20px',
+          fontSize: '16px',
+          backgroundColor: '#0070f3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer'
+        }}
+      >
+        发送测试数据
+      </button>
     </div>
   );
-}
-
-export async function getStaticProps(context) {
-  const data = await prisma.product.findMany({
-    include: {
-      category: true,
-    },
-  });
-
-  //convert decimal value to string to pass through as json
-  const products = data.map((product) => ({
-    ...product,
-    price: product.price.toString(),
-  }));
-  return {
-    props: { products },
-  };
 }

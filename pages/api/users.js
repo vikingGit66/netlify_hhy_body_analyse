@@ -1,6 +1,20 @@
 import pool from '../../lib/db';
 
+// 初始化数据库（首次访问时）
+let isInitialized = false;
+
 export default async function handler(req, res) {
+  // 初始化数据库
+  if (!isInitialized) {
+    try {
+      await initDatabase();
+      isInitialized = true;
+    } catch (error) {
+      console.error('Database initialization error:', error);
+      return res.status(500).json({ error: 'Database initialization failed' });
+    }
+  }
+
   let connection;
   try {
     connection = await pool.getConnection();
@@ -10,8 +24,7 @@ export default async function handler(req, res) {
       const [rows] = await connection.query(
         'SELECT id, name, email, created_at FROM users ORDER BY created_at DESC'
       );
-      res.status(200).json(rows);
-      return;
+      return res.status(200).json(rows);
     }
 
     // POST请求 - 创建新用户
@@ -35,13 +48,12 @@ export default async function handler(req, res) {
         [result.insertId]
       );
       
-      res.status(201).json(newUser[0]);
-      return;
+      return res.status(201).json(newUser[0]);
     }
 
     // 处理其他HTTP方法
     res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   } catch (error) {
     console.error('Database error:', error);
     
@@ -50,7 +62,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Email already exists' });
     }
     
-    res.status(500).json({ error: 'Database operation failed' });
+    return res.status(500).json({ error: 'Database operation failed' });
   } finally {
     if (connection) connection.release();
   }

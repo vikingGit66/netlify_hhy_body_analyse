@@ -1,3 +1,9 @@
+此仓库不使用，仅测试
+
+[Vercel应用如何绑定自己的域名 | Tangly的学习笔记](https://blog.tangly1024.com/article/vercel-domain)
+
+
+
 # Next.js + MySQL
 
 This is a [Next.js](https://nextjs.org/) project that uses [Prisma](https://www.prisma.io/) to connect to a [PlanetScale](https://planetscale.com/) MySQL database and [Tailwind CSS](https://tailwindcss.com/) for styling.
